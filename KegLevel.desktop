@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=KegLevel Monitor
+Comment=Run the KegLevel Python application
+
+Exec=bash -c 'LATEST=$(chmod +x "/home/raspberrypi/Desktop/KegLevel_Monitor/KegLevel_Monitor"* 2>/dev/null; ls -t "/home/raspberrypi/Desktop/KegLevel_Monitor/KegLevel_Monitor"* | head -n 1); exec "$LATEST"'
+
+Terminal=false
+Type=Application
+Icon=/home/raspberrypi/Desktop/KegLevel_Monitor/beer-keg.png
+Categories=Utility; 
