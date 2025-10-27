@@ -42,10 +42,12 @@ echo "--- Starting installation of KegLevel Monitor for user: ${TARGET_USER} ---
 confirm_action() {
     local PROMPT_TEXT="$1"
     local CONFIRMED="N"
+    # Added /dev/tty redirection to ensure 'read' works when script is piped via curl | bash
     while true; do
         echo ""
         echo "$PROMPT_TEXT"
-        read -r -p "Type Y to proceed or N to select an action again: " CHOICE
+        # Read input specifically from the terminal (keyboard)
+        read -r -p "Type Y to proceed or N to select an action again: " CHOICE < /dev/tty
         CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
         
         case "$CHOICE" in
@@ -151,7 +153,8 @@ management_menu() {
         echo "D - Delete the current installation and reinstall from scratch. DANGER! Any custom data or settings will be deleted and cannot be recovered."
         echo "========================================================================="
 
-        read -r -p "Selection (E/U/D): " CHOICE
+        # Added /dev/tty redirection to ensure 'read' works when script is piped via curl | bash
+        read -r -p "Selection (E/U/D): " CHOICE < /dev/tty
         CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
         
         case "$CHOICE" in
