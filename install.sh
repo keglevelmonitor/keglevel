@@ -45,19 +45,31 @@ handle_confirmation() {
     local INFO_TEXT="$1"
     local CONFIRMED="N"
     
+    # 1. Display the required Information Text
     echo ""
     echo "$INFO_TEXT"
-    # Read input specifically from the terminal (keyboard)
-    read -r -p "Type Y to proceed or N to select an action again: " CHOICE < /dev/tty
-    CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
     
-    if [ "$CHOICE" == "Y" ]; then
-        echo "Proceeding..."
-        CONFIRMED="Y"
-    else
-        echo "Action cancelled. Returning to menu."
-        CONFIRMED="N"
-    fi
+    # 2. Loop for the Confirmation Prompt
+    while true; do
+        read -r -p "Type Y to proceed or N to select an action again: " CHOICE < /dev/tty
+        CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
+        
+        case "$CHOICE" in
+            Y)
+                echo "Proceeding..."
+                CONFIRMED="Y"
+                break
+                ;;
+            N)
+                echo "Action cancelled. Returning to menu."
+                CONFIRMED="N"
+                break
+                ;;
+            *)
+                echo "Invalid selection. Please type Y or N."
+                ;;
+        esac
+    done
     echo "$CONFIRMED"
 }
 
