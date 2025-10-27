@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=KegLevel Monitor Updater
+Comment=Update KegLevel Monitor App
+
+Exec=lxterminal -e "curl -sL https://raw.githubusercontent.com/keglevelmonitor/keglevel/main/update.sh | bash"
+
+Terminal=false
+Type=Application
+Icon=/home/raspberrypi/Desktop/KegLevel_Monitor/arrow.png
+Categories=Utility; 
+Name[en_US]=KegLevel Monitor Updater
+Comment[en_US]=Update KegLevel Monitor App
