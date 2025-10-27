@@ -201,30 +201,44 @@ management_menu() {
                 ;;
             
             D)
-                # --- Action D: Delete and Reinstall ---
-                echo ""
-                echo "Delete the current installation and reinstall KegLevel Monitor from scratch - DANGER! Any custom data or settings will be deleted and cannot be recovered"
+                # --- Action D: Delete and Reinstall with Confirmation ---
+                DANGER_MSG="Delete the current installation and reinstall from scratch is DESTRUCTIVE! Any custom data or settings will be deleted and cannot be recovered."
                 
                 echo ""
-                echo "Starting Delete and Reinstall Process..."
+                echo "$DANGER_MSG"
                 
-                # 1. Delete the application folder
-                echo "-> Deleting application folder: ${APP_INSTALL_PATH}"
-                rm -rf "$APP_INSTALL_PATH"
-                
-                # 2. Delete the desktop shortcut
-                echo "-> Deleting desktop shortcut: ${SHORTCUT_PATH}"
-                rm -f "$SHORTCUT_PATH"
-                
-                # 3. Reinstall from scratch
-                initial_install_and_cleanup
-                
-                if [ $? -eq 0 ]; then
-                    echo "Reinstallation complete! Old data permanently deleted."
+                read -r -p "Enter Y to proceed or N to exit without changes: " CONFIRM_CHOICE < /dev/tty
+                CONFIRM_CHOICE=$(echo "$CONFIRM_CHOICE" | tr '[:lower:]' '[:upper:]')
+
+                if [ "$CONFIRM_CHOICE" == "Y" ]; then
+                    echo ""
+                    echo "Starting Delete and Reinstall Process..."
+                    
+                    # 1. Delete the application folder
+                    echo "-> Deleting application folder: ${APP_INSTALL_PATH}"
+                    rm -rf "$APP_INSTALL_PATH"
+                    
+                    # 2. Delete the desktop shortcut
+                    echo "-> Deleting desktop shortcut: ${SHORTCUT_PATH}"
+                    rm -f "$SHORTCUT_PATH"
+                    
+                    # 3. Reinstall from scratch
+                    initial_install_and_cleanup
+                    
+                    if [ $? -eq 0 ]; then
+                        echo "Reinstallation complete! Old data permanently deleted."
+                        exit 0
+                    else
+                        echo "Reinstallation failed. Check log."
+                        exit 1
+                    fi
+                elif [ "$CONFIRM_CHOICE" == "N" ]; then
+                    echo ""
+                    echo "Deletion canceled by user. Exiting without making any changes."
                     exit 0
                 else
-                    echo "Reinstallation failed. Check log."
-                    exit 1
+                    echo "Invalid confirmation entered. Exiting without making any changes."
+                    exit 0
                 fi
                 ;;
 
