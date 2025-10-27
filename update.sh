@@ -13,7 +13,7 @@ TEMP_DIR=$(mktemp -d)
 SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py temperature_logic.py"
 
 # Files that should be present in the repository and MUST be copied
-CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png"
+CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png arrow.png" # <--- EDITED: Added arrow.png
 
 # Files that are RETAINED by the user and *may not* exist in the repo, but if they do, should be copied/overwritten
 USER_SETTINGS="config.json settings.json"
@@ -130,13 +130,14 @@ update_action_revised() {
     mkdir -p "$BACKUP_FOLDER"
     
     # --- EXCLUSIONS ---
-    EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png" -not -name "backup_*" -not -path "$BACKUP_FOLDER""
+    # EDITED: Added -not -name "arrow.png" to ensure it's retained with beer-keg.png and *.json files
+    EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png" -not -name "arrow.png" -not -name "backup_*" -not -path "$BACKUP_FOLDER"" 
     
     # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the retained files/folders
     find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 $EXCLUSIONS -exec mv -t "$BACKUP_FOLDER" {} +
     
     echo "-> Existing project files moved to backup folder: ${BACKUP_FOLDER}"
-    echo "-> User settings (*.json), cache, and static assets (beer-keg.png, old backups) retained in main directory."
+    echo "-> User settings (*.json), cache, and static assets (beer-keg.png, arrow.png, old backups) retained in main directory." # <--- EDITED: Updated description
 
     # --- COPY NEW FILES FROM TEMP CLONE ---
     echo "2. Installing updated application files..."
