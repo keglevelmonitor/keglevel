@@ -6,7 +6,7 @@
 # --- CONFIGURATION ---
 REPO_URL="https://github.com/keglevelmonitor/keglevel.git" 
 PROGRAM_FOLDER="KegLevel_Monitor"
-SHORTCUT_FILE="KegLevel.desktop"
+SHORTCUT_FILES="KegLevel.desktop KegLevelUpdater.desktop" # <--- EDITED: Added new shortcut
 # NOTE: EXECUTABLE_NAME has been removed. The script now dynamically finds the newest executable.
 TEMP_DIR=$(mktemp -d)
 
@@ -15,7 +15,7 @@ SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py tempe
 
 # Files that should be present in the repository and MUST be copied
 # Includes library files and static assets needed for installation.
-CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png arrow.png" # Retains arrow.png
+CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png arrow.png" 
 
 # Files that are RETAINED by the user and *may not* exist in the repo, but if they do, should be copied/overwritten
 USER_SETTINGS="config.json settings.json"
@@ -39,7 +39,7 @@ fi
 
 DESKTOP_PATH="/home/${TARGET_USER}/Desktop"
 APP_INSTALL_PATH="${DESKTOP_PATH}/${PROGRAM_FOLDER}"
-SHORTCUT_PATH="${DESKTOP_PATH}/${SHORTCUT_FILE}" # Defined here for use in 'D' action
+# SHORTCUT_PATH removed as we now iterate over SHORTCUT_FILES
 
 echo "--- Starting installation of KegLevel Monitor for user: ${TARGET_USER} ---"
 
@@ -56,7 +56,6 @@ initial_install_and_cleanup() {
 
     # 2. DOWNLOAD THE CODE
     echo "2. Cloning code from ${REPO_URL} into temporary directory..."
-    # The global TEMP_DIR is reused here, but initial_install_and_cleanup now operates on a temporary folder it manages.
     local TEMP_DIR=$(mktemp -d) 
     git clone --depth 1 "${REPO_URL}" "${TEMP_DIR}" || { echo "ERROR: Git clone failed. Check REPO_URL."; rm -rf "$TEMP_DIR"; exit 1; }
     
@@ -111,23 +110,27 @@ initial_install_and_cleanup() {
     echo "    Setting executable permissions on $EXECUTABLE_BASE_NAME..."
     chmod +x "$EXECUTABLE_DESTINATION"
 
-    # 4. INSTALL DESKTOP SHORTCUT
-    echo "4. Installing desktop shortcut file..."
-    SHORTCUT_SOURCE="${TEMP_DIR}/${SHORTCUT_FILE}"
-    SHORTCUT_DESTINATION="${DESKTOP_PATH}/${SHORTCUT_FILE}"
-
-    if [ ! -f "$SHORTCUT_SOURCE" ]; then
-        echo "WARNING: Shortcut file '${SHORTCUT_FILE}' not found. Skipping shortcut installation."
-    else
-        # Use 'cp' here since 'mv' in the old version sometimes causes issues if target exists.
-        cp "$SHORTCUT_SOURCE" "$SHORTCUT_DESTINATION"
-        chown ${TARGET_USER}:${TARGET_USER} "$SHORTCUT_DESTINATION"
-        chmod +x "$SHORTCUT_DESTINATION"
+    # 4. INSTALL DESKTOP SHORTCUTS # <--- EDITED: Pluralized header
+    echo "4. Installing desktop shortcut files..."
+    
+    # Loop over the SHORTCUT_FILES variable
+    for shortcut in $SHORTCUT_FILES; do # <--- EDITED: Loop added
+        SHORTCUT_SOURCE="${TEMP_DIR}/${shortcut}"
+        SHORTCUT_DESTINATION="${DESKTOP_PATH}/${shortcut}"
         
-        # Mark the shortcut as trusted (requires gio command, which may fail silently if not found/logged in)
-        echo "    Setting trusted attribute on shortcut..."
-        su -c "gio set \"$SHORTCUT_DESTINATION\" \"metadata::trusted\" true" ${TARGET_USER} 2>/dev/null
-    fi
+        if [ ! -f "$SHORTCUT_SOURCE" ]; then
+            echo "WARNING: Shortcut file '${shortcut}' not found. Skipping shortcut installation."
+        else
+            echo "    Installing shortcut: ${shortcut}" # <--- EDITED: Added file name to echo
+            cp "$SHORTCUT_SOURCE" "$SHORTCUT_DESTINATION"
+            chown ${TARGET_USER}:${TARGET_USER} "$SHORTCUT_DESTINATION"
+            chmod +x "$SHORTCUT_DESTINATION"
+            
+            # Mark the shortcut as trusted 
+            echo "    Setting trusted attribute on shortcut..."
+            su -c "gio set \"$SHORTCUT_DESTINATION\" \"metadata::trusted\" true" ${TARGET_USER} 2>/dev/null
+        fi
+    done # <--- EDITED: End of loop
     
     # 5. FINAL CLEANUP
     echo "5. Cleaning up temporary files..."
@@ -138,7 +141,7 @@ initial_install_and_cleanup() {
 }
 
 
-# Function to handle the version comparison logic (Copied from update.sh)
+# Function to handle the version comparison logic
 local_version_check() {
     local REPO_EXECUTABLE_NAME="$1"
     
@@ -260,7 +263,7 @@ management_menu() {
                 echo "Starting Update Process..."
                 echo "-> Creating backup folder: ${BACKUP_FOLDER}"
                 
-                # FIX 1: Create backup folder *before* listing contents to avoid self-reference error
+                # Create backup folder *before* listing contents to avoid self-reference error
                 mkdir -p "$BACKUP_FOLDER"
                 
                 # --- EXCLUSIONS ---
@@ -303,9 +306,13 @@ management_menu() {
                     echo "-> Deleting application folder: ${APP_INSTALL_PATH}"
                     rm -rf "$APP_INSTALL_PATH"
                     
-                    # 2. Delete the desktop shortcut
-                    echo "-> Deleting desktop shortcut: ${SHORTCUT_PATH}"
-                    rm -f "$SHORTCUT_PATH"
+                    # 2. Delete the desktop shortcuts # <--- EDITED: Pluralized header
+                    echo "-> Deleting desktop shortcut files..."
+                    for shortcut in $SHORTCUT_FILES; do # <--- EDITED: Loop added
+                        SHORTCUT_PATH="${DESKTOP_PATH}/${shortcut}"
+                        echo "    Deleting shortcut: ${shortcut}"
+                        rm -f "$SHORTCUT_PATH"
+                    done # <--- EDITED: End of loop
                     
                     # 3. Reinstall from scratch
                     initial_install_and_cleanup
