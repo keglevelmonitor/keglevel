@@ -162,11 +162,16 @@ management_menu() {
                 # FIX 1: Create backup folder *before* listing contents to avoid self-reference error
                 mkdir -p "$BACKUP_FOLDER"
                 
-                # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the backup folder itself
-                # This uses a temporary list to filter out the backup directory, which prevents the 'mv' error.
-                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -not -path "$BACKUP_FOLDER" -exec mv -t "$BACKUP_FOLDER" {} +
+                # --- FIX 2 & 3: EXCLUDE JSON, __pycache__, and beer-keg.png from being moved/backed up ---
+                # beer-keg.png is now explicitly excluded along with JSON files and the cache directory.
+                EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png""
                 
-                echo "-> Existing files moved to backup folder: ${BACKUP_FOLDER}"
+                # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the backup folder itself AND user data
+                # Files not moved: backup folder itself, any file ending in .json, the __pycache__ directory, and beer-keg.png
+                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -not -path "$BACKUP_FOLDER" $EXCLUSIONS -exec mv -t "$BACKUP_FOLDER" {} +
+                
+                echo "-> Existing project files moved to backup folder: ${BACKUP_FOLDER}"
+                echo "-> User settings (*.json), cache (__pycache__), and static assets (beer-keg.png) retained in main directory."
 
                 # Reinstall the application (installs fresh copies over the now-empty APP_INSTALL_PATH)
                 initial_install_and_cleanup
