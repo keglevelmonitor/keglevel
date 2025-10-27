@@ -10,12 +10,12 @@ SHORTCUT_FILE="KegLevel.desktop"
 # NOTE: EXECUTABLE_NAME has been removed. The script now dynamically finds the newest executable.
 TEMP_DIR=$(mktemp -d)
 
-# New list of support files to copy alongside the executable
+# Files that are code components/support scripts
 SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py temperature_logic.py"
 
 # Files that should be present in the repository and MUST be copied
-# FIX: Removed 'wiring.gif' from this list as it is bundled in the executable.
-CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json"
+# Includes library files and static assets needed for installation.
+CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png"
 
 # Files that are RETAINED by the user and *may not* exist in the repo, but if they do, should be copied/overwritten
 USER_SETTINGS="config.json settings.json"
@@ -84,7 +84,7 @@ initial_install_and_cleanup() {
 
     cp "$EXECUTABLE_SOURCE" "$EXECUTABLE_DESTINATION"
     
-    # 3b. Copy the Python support files and Core Assets (which MUST be in the repo)
+    # 3b. Copy all required support files and core assets from the repository
     for file in $SUPPORT_FILES $CORE_ASSETS; do
         SOURCE_FILE="${TEMP_DIR}/${PROGRAM_FOLDER}/${file}"
         if [ -f "$SOURCE_FILE" ]; then
@@ -95,12 +95,10 @@ initial_install_and_cleanup() {
     done
 
     # 3c. Copy user settings files (no warning, they might be missing if repo is clean)
-    # This copies *default* settings if they exist, overwriting older ones but preserving user data if the user modified them locally.
     for file in $USER_SETTINGS; do
         SOURCE_FILE="${TEMP_DIR}/${PROGRAM_FOLDER}/${file}"
         if [ -f "$SOURCE_FILE" ]; then
             cp "$SOURCE_FILE" "$APP_INSTALL_PATH/"
-        # ELSE: Do nothing. If the file is not in the repo, the user's existing copy will be used, or the app creates a default.
         fi
     done
     
