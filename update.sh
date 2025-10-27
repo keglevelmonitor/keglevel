@@ -163,7 +163,19 @@ update_action_revised() {
     rm -rf "$TEMP_DIR"
 
     echo "Update successful! Backup saved to ${BACKUP_FOLDER}"
+    
+    # === MODIFIED SECTION: ADDING THE EXIT PROMPT AFTER SUCCESSFUL UPDATE ===
+    echo ""
+    echo "========================================================================="
+    echo "Update complete. Press any key to exit the update."
+    echo "========================================================================="
+
+    # Read a single character from the terminal without waiting for Enter
+    read -n 1 -s -r < /dev/tty # Force read from TTY
+    echo "" # Add newline after keypress for clean exit
+    
     exit 0
+    # ========================================================================
 }
 
 
@@ -214,4 +226,3 @@ while true; do
     
     esac
 done
- 
