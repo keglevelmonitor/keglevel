@@ -13,6 +13,13 @@ TEMP_DIR=$(mktemp -d)
 # New list of support files to copy alongside the executable
 SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py temperature_logic.py"
 
+# Files that should be present in the repository and MUST be copied
+CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json wiring.gif"
+
+# Files that are RETAINED by the user and *may not* exist in the repo, but if they do, should be copied/overwritten
+USER_SETTINGS="config.json settings.json"
+
+
 # --- CHECK FOR ROOT PRIVILEGES ---
 if [ "$EUID" -ne 0 ]; then
     echo "ERROR: This script must be run with 'sudo'."
@@ -76,13 +83,23 @@ initial_install_and_cleanup() {
 
     cp "$EXECUTABLE_SOURCE" "$EXECUTABLE_DESTINATION"
     
-    # 3b. Copy the four new support files and any existing config/library files (e.g., JSON)
-    for file in $SUPPORT_FILES config.json settings.json bjcp_2015_library.json bjcp_2021_library.json wiring.gif; do
+    # 3b. Copy the Python support files and Core Assets (which MUST be in the repo)
+    for file in $SUPPORT_FILES $CORE_ASSETS; do
         SOURCE_FILE="${TEMP_DIR}/${PROGRAM_FOLDER}/${file}"
         if [ -f "$SOURCE_FILE" ]; then
             cp "$SOURCE_FILE" "$APP_INSTALL_PATH/"
         else
-            echo "    WARNING: Support file '$file' not found in the repository."
+            echo "    WARNING: Core file '$file' not found in the repository. This may cause runtime errors."
+        fi
+    done
+
+    # 3c. Copy user settings files (no warning, they might be missing if repo is clean)
+    # This copies *default* settings if they exist, overwriting older ones but preserving user data if the user modified them locally.
+    for file in $USER_SETTINGS; do
+        SOURCE_FILE="${TEMP_DIR}/${PROGRAM_FOLDER}/${file}"
+        if [ -f "$SOURCE_FILE" ]; then
+            cp "$SOURCE_FILE" "$APP_INSTALL_PATH/"
+        # ELSE: Do nothing. If the file is not in the repo, the user's existing copy will be used, or the app creates a default.
         fi
     done
     
@@ -162,16 +179,15 @@ management_menu() {
                 # FIX 1: Create backup folder *before* listing contents to avoid self-reference error
                 mkdir -p "$BACKUP_FOLDER"
                 
-                # --- FIX 2 & 3: EXCLUDE JSON, __pycache__, and beer-keg.png from being moved/backed up ---
-                # beer-keg.png is now explicitly excluded along with JSON files and the cache directory.
-                EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png""
+                # --- FIX 2 & 3: EXCLUDE JSON, __pycache__, beer-keg.png, and existing backup folders from being moved/backed up ---
+                # Exclusions: JSON files, cache, beer-keg.png, and any folder/file starting with 'backup_'
+                EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png" -not -name "backup_*" -not -path "$BACKUP_FOLDER""
                 
-                # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the backup folder itself AND user data
-                # Files not moved: backup folder itself, any file ending in .json, the __pycache__ directory, and beer-keg.png
-                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -not -path "$BACKUP_FOLDER" $EXCLUSIONS -exec mv -t "$BACKUP_FOLDER" {} +
+                # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the retained files/folders
+                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 $EXCLUSIONS -exec mv -t "$BACKUP_FOLDER" {} +
                 
                 echo "-> Existing project files moved to backup folder: ${BACKUP_FOLDER}"
-                echo "-> User settings (*.json), cache (__pycache__), and static assets (beer-keg.png) retained in main directory."
+                echo "-> User settings (*.json), cache, and static assets (beer-keg.png, old backups) retained in main directory."
 
                 # Reinstall the application (installs fresh copies over the now-empty APP_INSTALL_PATH)
                 initial_install_and_cleanup
