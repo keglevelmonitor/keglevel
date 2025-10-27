@@ -32,38 +32,32 @@ fi
 
 DESKTOP_PATH="/home/${TARGET_USER}/Desktop"
 APP_INSTALL_PATH="${DESKTOP_PATH}/${PROGRAM_FOLDER}"
+SHORTCUT_PATH="${DESKTOP_PATH}/${SHORTCUT_FILE}" # Defined here for use in 'D' action
 
 echo "--- Starting installation of KegLevel Monitor for user: ${TARGET_USER} ---"
 
 
 # --- FUNCTIONS ---
 
-# Function to prompt for confirmation (Y/N)
-confirm_action() {
-    local PROMPT_TEXT="$1"
+# Function to handle the Confirmation step (Accepts info text, returns Y or N)
+# NOTE: Reads input from /dev/tty to handle piping
+handle_confirmation() {
+    local INFO_TEXT="$1"
     local CONFIRMED="N"
-    # Added /dev/tty redirection to ensure 'read' works when script is piped via curl | bash
-    while true; do
-        echo ""
-        echo "$PROMPT_TEXT"
-        # Read input specifically from the terminal (keyboard)
-        read -r -p "Type Y to proceed or N to select an action again: " CHOICE < /dev/tty
-        CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
-        
-        case "$CHOICE" in
-            Y)
-                CONFIRMED="Y"
-                break
-                ;;
-            N)
-                CONFIRMED="N"
-                break
-                ;;
-            *)
-                echo "Invalid selection. Please type Y or N."
-                ;;
-        esac
-    done
+    
+    echo ""
+    echo "$INFO_TEXT"
+    # Read input specifically from the terminal (keyboard)
+    read -r -p "Type Y to proceed or N to select an action again: " CHOICE < /dev/tty
+    CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
+    
+    if [ "$CHOICE" == "Y" ]; then
+        echo "Proceeding..."
+        CONFIRMED="Y"
+    else
+        echo "Action cancelled. Returning to menu."
+        CONFIRMED="N"
+    fi
     echo "$CONFIRMED"
 }
 
@@ -122,6 +116,7 @@ initial_install_and_cleanup() {
     if [ ! -f "$SHORTCUT_SOURCE" ]; then
         echo "WARNING: Shortcut file '${SHORTCUT_FILE}' not found. Skipping shortcut installation."
     else
+        # Use 'cp' here since 'mv' in the old version sometimes causes issues if target exists.
         cp "$SHORTCUT_SOURCE" "$SHORTCUT_DESTINATION"
         chown ${TARGET_USER}:${TARGET_USER} "$SHORTCUT_DESTINATION"
         chmod +x "$SHORTCUT_DESTINATION"
@@ -141,6 +136,7 @@ initial_install_and_cleanup() {
 
 # Function to display the menu and handle user choice
 management_menu() {
+    local CONFIRMATION_PROMPT=""
     
     # --- Menu Loop ---
     while true; do
@@ -153,14 +149,15 @@ management_menu() {
         echo "D - Delete the current installation and reinstall from scratch. DANGER! Any custom data or settings will be deleted and cannot be recovered."
         echo "========================================================================="
 
-        # Added /dev/tty redirection to ensure 'read' works when script is piped via curl | bash
+        # Read input specifically from the terminal (keyboard)
         read -r -p "Selection (E/U/D): " CHOICE < /dev/tty
         CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
         
         case "$CHOICE" in
             E)
                 # --- Action E: Exit ---
-                CONFIRMATION=$(confirm_action "Exiting without making any changes")
+                CONFIRMATION_PROMPT="Exiting without making any changes"
+                CONFIRMATION=$(handle_confirmation "$CONFIRMATION_PROMPT")
                 if [ "$CONFIRMATION" == "Y" ]; then
                     echo "Installer exited by user. No changes were made."
                     exit 0
@@ -169,7 +166,9 @@ management_menu() {
             
             U)
                 # --- Action U: Update (Backup, then Reinstall) ---
-                CONFIRMATION=$(confirm_action "Creating backup of project folder and leaving all settings files intact")
+                CONFIRMATION_PROMPT="Creating backup of project folder and leaving all settings files intact"
+                CONFIRMATION=$(handle_confirmation "$CONFIRMATION_PROMPT")
+                
                 if [ "$CONFIRMATION" == "Y" ]; then
                     TIMESTAMP=$(date +%Y%m%d%H%M)
                     BACKUP_FOLDER="${APP_INSTALL_PATH}/backup_${TIMESTAMP}"
@@ -181,14 +180,13 @@ management_menu() {
                     # Move all existing contents into the backup folder
                     mkdir -p "$BACKUP_FOLDER"
                     
-                    # The backup action MUST preserve config files if they are not executables.
-                    # We move EVERYTHING out of the project folder into the backup, then re-run the install.
-                    # This ensures all custom settings the user created (if they're not in the repo) are saved.
+                    # Move EVERYTHING out of the project folder into the backup
+                    # Using 'mv' here is safe because the target directory ($BACKUP_FOLDER) is guaranteed empty.
                     find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -exec mv -t "$BACKUP_FOLDER" {} +
                     
                     echo "-> Existing files moved to backup folder: ${BACKUP_FOLDER}"
 
-                    # Reinstall the application (which installs fresh copies of all files)
+                    # Reinstall the application (installs fresh copies over the now-empty APP_INSTALL_PATH)
                     initial_install_and_cleanup
                     
                     if [ $? -eq 0 ]; then
@@ -203,8 +201,8 @@ management_menu() {
             
             D)
                 # --- Action D: Delete and Reinstall ---
-                DANGER_MSG="Delete the current installation and reinstall KegLevel Monitor from scratch\nDANGER! Any custom data or settings will be deleted and cannot be recovered"
-                CONFIRMATION=$(confirm_action "$DANGER_MSG")
+                CONFIRMATION_PROMPT="Delete the current installation and reinstall KegLevel Monitor from scratch - DANGER! Any custom data or settings will be deleted and cannot be recovered"
+                CONFIRMATION=$(handle_confirmation "$CONFIRMATION_PROMPT")
                 
                 if [ "$CONFIRMATION" == "Y" ]; then
                     echo ""
@@ -249,5 +247,3 @@ else
     initial_install_and_cleanup
     exit $?
 fi
-
-
