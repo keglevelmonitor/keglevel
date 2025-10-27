@@ -39,40 +39,6 @@ echo "--- Starting installation of KegLevel Monitor for user: ${TARGET_USER} ---
 
 # --- FUNCTIONS ---
 
-# Function to handle the Confirmation step (Accepts info text, returns Y or N)
-# NOTE: Reads input from /dev/tty to handle piping
-handle_confirmation() {
-    local INFO_TEXT="$1"
-    local CONFIRMED="N"
-    
-    # 1. Display the required Information Text
-    echo ""
-    echo "$INFO_TEXT"
-    
-    # 2. Loop for the Confirmation Prompt
-    while true; do
-        read -r -p "Type Y to proceed or N to select an action again: " CHOICE < /dev/tty
-        CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
-        
-        case "$CHOICE" in
-            Y)
-                echo "Proceeding..."
-                CONFIRMED="Y"
-                break
-                ;;
-            N)
-                echo "Action cancelled. Returning to menu."
-                CONFIRMED="N"
-                break
-                ;;
-            *)
-                echo "Invalid selection. Please type Y or N."
-                ;;
-        esac
-    done
-    echo "$CONFIRMED"
-}
-
 # Function containing the core installation steps (Clones, copies files, sets permissions)
 initial_install_and_cleanup() {
     
@@ -148,7 +114,6 @@ initial_install_and_cleanup() {
 
 # Function to display the menu and handle user choice
 management_menu() {
-    local CONFIRMATION_PROMPT=""
     
     # --- Menu Loop ---
     while true; do
@@ -168,78 +133,71 @@ management_menu() {
         case "$CHOICE" in
             E)
                 # --- Action E: Exit ---
-                CONFIRMATION_PROMPT="Exiting without making any changes"
-                CONFIRMATION=$(handle_confirmation "$CONFIRMATION_PROMPT")
-                if [ "$CONFIRMATION" == "Y" ]; then
-                    echo "Installer exited by user. No changes were made."
-                    exit 0
-                fi
-                ;; # If N, loop back to the menu
+                echo ""
+                echo "Exiting without making any changes"
+                echo "Installer exited by user. No changes were made."
+                exit 0
+                ;;
             
             U)
                 # --- Action U: Update (Backup, then Reinstall) ---
-                CONFIRMATION_PROMPT="Creating backup of project folder and leaving all settings files intact"
-                CONFIRMATION=$(handle_confirmation "$CONFIRMATION_PROMPT")
+                echo ""
+                echo "Creating backup of project folder and leaving all settings files intact"
                 
-                if [ "$CONFIRMATION" == "Y" ]; then
-                    TIMESTAMP=$(date +%Y%m%d%H%M)
-                    BACKUP_FOLDER="${APP_INSTALL_PATH}/backup_${TIMESTAMP}"
-                    
-                    echo ""
-                    echo "Starting Update Process..."
-                    echo "-> Creating backup folder: ${BACKUP_FOLDER}"
-                    
-                    # Move all existing contents into the backup folder
-                    mkdir -p "$BACKUP_FOLDER"
-                    
-                    # Move EVERYTHING out of the project folder into the backup
-                    # Using 'mv' here is safe because the target directory ($BACKUP_FOLDER) is guaranteed empty.
-                    find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -exec mv -t "$BACKUP_FOLDER" {} +
-                    
-                    echo "-> Existing files moved to backup folder: ${BACKUP_FOLDER}"
+                TIMESTAMP=$(date +%Y%m%d%H%M)
+                BACKUP_FOLDER="${APP_INSTALL_PATH}/backup_${TIMESTAMP}"
+                
+                echo ""
+                echo "Starting Update Process..."
+                echo "-> Creating backup folder: ${BACKUP_FOLDER}"
+                
+                # Move all existing contents into the backup folder
+                mkdir -p "$BACKUP_FOLDER"
+                
+                # Move EVERYTHING out of the project folder into the backup
+                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -exec mv -t "$BACKUP_FOLDER" {} +
+                
+                echo "-> Existing files moved to backup folder: ${BACKUP_FOLDER}"
 
-                    # Reinstall the application (installs fresh copies over the now-empty APP_INSTALL_PATH)
-                    initial_install_and_cleanup
-                    
-                    if [ $? -eq 0 ]; then
-                        echo "Update complete! Backup saved to ${BACKUP_FOLDER}"
-                        exit 0
-                    else
-                        echo "Update failed during reinstallation. Check log."
-                        exit 1
-                    fi
+                # Reinstall the application (installs fresh copies over the now-empty APP_INSTALL_PATH)
+                initial_install_and_cleanup
+                
+                if [ $? -eq 0 ]; then
+                    echo "Update complete! Backup saved to ${BACKUP_FOLDER}"
+                    exit 0
+                else
+                    echo "Update failed during reinstallation. Check log."
+                    exit 1
                 fi
-                ;; # If N, loop back to the menu
+                ;;
             
             D)
                 # --- Action D: Delete and Reinstall ---
-                CONFIRMATION_PROMPT="Delete the current installation and reinstall KegLevel Monitor from scratch - DANGER! Any custom data or settings will be deleted and cannot be recovered"
-                CONFIRMATION=$(handle_confirmation "$CONFIRMATION_PROMPT")
+                echo ""
+                echo "Delete the current installation and reinstall KegLevel Monitor from scratch - DANGER! Any custom data or settings will be deleted and cannot be recovered"
                 
-                if [ "$CONFIRMATION" == "Y" ]; then
-                    echo ""
-                    echo "Starting Delete and Reinstall Process..."
-                    
-                    # 1. Delete the application folder
-                    echo "-> Deleting application folder: ${APP_INSTALL_PATH}"
-                    rm -rf "$APP_INSTALL_PATH"
-                    
-                    # 2. Delete the desktop shortcut
-                    echo "-> Deleting desktop shortcut: ${SHORTCUT_PATH}"
-                    rm -f "$SHORTCUT_PATH"
-                    
-                    # 3. Reinstall from scratch
-                    initial_install_and_cleanup
-                    
-                    if [ $? -eq 0 ]; then
-                        echo "Reinstallation complete! Old data permanently deleted."
-                        exit 0
-                    else
-                        echo "Reinstallation failed. Check log."
-                        exit 1
-                    fi
+                echo ""
+                echo "Starting Delete and Reinstall Process..."
+                
+                # 1. Delete the application folder
+                echo "-> Deleting application folder: ${APP_INSTALL_PATH}"
+                rm -rf "$APP_INSTALL_PATH"
+                
+                # 2. Delete the desktop shortcut
+                echo "-> Deleting desktop shortcut: ${SHORTCUT_PATH}"
+                rm -f "$SHORTCUT_PATH"
+                
+                # 3. Reinstall from scratch
+                initial_install_and_cleanup
+                
+                if [ $? -eq 0 ]; then
+                    echo "Reinstallation complete! Old data permanently deleted."
+                    exit 0
+                else
+                    echo "Reinstallation failed. Check log."
+                    exit 1
                 fi
-                ;; # If N, loop back to the menu
+                ;;
 
             *)
                 echo "Invalid selection. Please type E, U, or D."
