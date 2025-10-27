@@ -14,7 +14,8 @@ TEMP_DIR=$(mktemp -d)
 SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py temperature_logic.py"
 
 # Files that should be present in the repository and MUST be copied
-CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json wiring.gif"
+# FIX: Removed 'wiring.gif' from this list as it is bundled in the executable.
+CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json"
 
 # Files that are RETAINED by the user and *may not* exist in the repo, but if they do, should be copied/overwritten
 USER_SETTINGS="config.json settings.json"
@@ -179,7 +180,7 @@ management_menu() {
                 # FIX 1: Create backup folder *before* listing contents to avoid self-reference error
                 mkdir -p "$BACKUP_FOLDER"
                 
-                # --- FIX 2 & 3: EXCLUDE JSON, __pycache__, beer-keg.png, and existing backup folders from being moved/backed up ---
+                # --- EXCLUSIONS ---
                 # Exclusions: JSON files, cache, beer-keg.png, and any folder/file starting with 'backup_'
                 EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png" -not -name "backup_*" -not -path "$BACKUP_FOLDER""
                 
