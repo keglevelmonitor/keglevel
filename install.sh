@@ -15,7 +15,7 @@ SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py tempe
 
 # Files that should be present in the repository and MUST be copied
 # Includes library files and static assets needed for installation.
-CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png"
+CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png arrow.png" # Retains arrow.png
 
 # Files that are RETAINED by the user and *may not* exist in the repo, but if they do, should be copied/overwritten
 USER_SETTINGS="config.json settings.json"
@@ -56,11 +56,12 @@ initial_install_and_cleanup() {
 
     # 2. DOWNLOAD THE CODE
     echo "2. Cloning code from ${REPO_URL} into temporary directory..."
+    # The global TEMP_DIR is reused here, but initial_install_and_cleanup now operates on a temporary folder it manages.
+    local TEMP_DIR=$(mktemp -d) 
     git clone --depth 1 "${REPO_URL}" "${TEMP_DIR}" || { echo "ERROR: Git clone failed. Check REPO_URL."; rm -rf "$TEMP_DIR"; exit 1; }
     
     # --- DYNAMIC EXECUTABLE DISCOVERY ---
     # Finds the single file in the cloned repo matching the KegLevel_Monitor_* pattern.
-    # This ensures the script always uses the newest, correct executable name.
     EXECUTABLE_NAME_FOUND=$(find "${TEMP_DIR}/${PROGRAM_FOLDER}" -maxdepth 1 -type f -name "KegLevel_Monitor_*" -print -quit)
     
     if [ -z "$EXECUTABLE_NAME_FOUND" ]; then
@@ -136,6 +137,55 @@ initial_install_and_cleanup() {
     return 0
 }
 
+
+# Function to handle the version comparison logic (Copied from update.sh)
+local_version_check() {
+    local REPO_EXECUTABLE_NAME="$1"
+    
+    # Extract the timestamp (YYYYMMDDHHMM) from the repository executable name
+    REPO_TIMESTAMP=$(echo "$REPO_EXECUTABLE_NAME" | grep -oE '[0-9]{12}')
+
+    # Find the newest local executable timestamp
+    LATEST_LOCAL_EXE=$(find "$APP_INSTALL_PATH" -maxdepth 1 -type f -name "KegLevel_Monitor_*" | sort -r | head -n 1)
+    
+    if [ -z "$LATEST_LOCAL_EXE" ]; then
+        echo "WARNING: Could not find any local executable to compare. Proceeding with update."
+        return 0
+    fi
+    
+    # Extract the timestamp from the latest local executable name
+    LATEST_LOCAL_TIMESTAMP=$(basename "$LATEST_LOCAL_EXE" | grep -oE '[0-9]{12}')
+
+    echo "    Local Version Timestamp: $LATEST_LOCAL_TIMESTAMP"
+    echo "    Repo Version Timestamp:  $REPO_TIMESTAMP"
+    
+    # Compare timestamps numerically
+    if [ -n "$REPO_TIMESTAMP" ] && [ -n "$LATEST_LOCAL_TIMESTAMP" ] && [ "$LATEST_LOCAL_TIMESTAMP" -ge "$REPO_TIMESTAMP" ]; then
+        
+        if [ "$LATEST_LOCAL_TIMESTAMP" -eq "$REPO_TIMESTAMP" ]; then
+            VERSION_MESSAGE="Local installation is current (Version $LATEST_LOCAL_TIMESTAMP)."
+        else
+            VERSION_MESSAGE="Local installation is newer than the repository version (Local $LATEST_LOCAL_TIMESTAMP vs Repo $REPO_TIMESTAMP)."
+        fi
+        
+        echo ""
+        echo "========================================================================="
+        echo "Update not required: $VERSION_MESSAGE"
+        echo "Press any key to exit the update."
+        echo "========================================================================="
+        
+        # Read a single character from the terminal without waiting for Enter
+        read -n 1 -s -r < /dev/tty # Force read from TTY
+        echo "" # Add newline after keypress for clean exit
+        
+        return 1 # Signal that the update process should stop
+    fi
+    
+    # If we reach here, the local version is older, so return 0 to proceed with the update
+    return 0
+}
+
+
 # Function to display the menu and handle user choice
 management_menu() {
     
@@ -164,8 +214,43 @@ management_menu() {
                 ;;
             
             U)
-                # --- Action U: Update (Backup, then Reinstall) ---
+                # --- Action U: Update (Version Check, then Backup/Reinstall) ---
                 echo ""
+                
+                # Check 1: Clone repo to get latest version info
+                echo "1. Cloning code from ${REPO_URL} into temporary directory for version check..."
+                local TEMP_DIR_CHECK=$(mktemp -d)
+                if ! command -v git &> /dev/null; then
+                    echo "ERROR: Git is not installed. Cannot perform version check. Aborting update."
+                    rm -rf "$TEMP_DIR_CHECK"
+                    break
+                fi
+                git clone --depth 1 "${REPO_URL}" "${TEMP_DIR_CHECK}" || { echo "ERROR: Git clone failed. Check REPO_URL. Aborting update."; rm -rf "$TEMP_DIR_CHECK"; break; }
+
+                local EXECUTABLE_NAME_CHECK=$(find "${TEMP_DIR_CHECK}/${PROGRAM_FOLDER}" -maxdepth 1 -type f -name "KegLevel_Monitor_*" -print -quit)
+                if [ -z "$EXECUTABLE_NAME_CHECK" ]; then
+                    echo "ERROR: No executable file matching 'KegLevel_Monitor_*' found in the repository. Aborting."
+                    rm -rf "$TEMP_DIR_CHECK"
+                    break
+                fi
+                local REPO_EXECUTABLE_NAME=$(basename "$EXECUTABLE_NAME_CHECK")
+                
+                # Check 2: Compare versions
+                local_version_check "$REPO_EXECUTABLE_NAME"
+                local CHECK_RESULT=$?
+                
+                # Clean up the check clone directory immediately
+                rm -rf "$TEMP_DIR_CHECK"
+
+                if [ $CHECK_RESULT -eq 1 ]; then
+                    # Version check determined no update is needed (exit was handled in the function)
+                    exit 0
+                fi
+                
+                # If we reach here, an update IS REQUIRED. Proceed with Backup and Reinstall.
+                
+                echo ""
+                echo "Local version is older. Proceeding with update."
                 echo "Creating backup of project folder and leaving all settings files intact"
                 
                 TIMESTAMP=$(date +%Y%m%d%H%M)
@@ -179,14 +264,14 @@ management_menu() {
                 mkdir -p "$BACKUP_FOLDER"
                 
                 # --- EXCLUSIONS ---
-                # Exclusions: JSON files, cache, beer-keg.png, and any folder/file starting with 'backup_'
-                EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png" -not -name "backup_*" -not -path "$BACKUP_FOLDER""
+                # Exclusions: JSON files, cache, beer-keg.png, arrow.png and any folder/file starting with 'backup_'
+                EXCLUSIONS="-not -name "*.json" -not -name "__pycache__" -not -name "beer-keg.png" -not -name "arrow.png" -not -name "backup_*" -not -path "$BACKUP_FOLDER""
                 
                 # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the retained files/folders
                 find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 $EXCLUSIONS -exec mv -t "$BACKUP_FOLDER" {} +
                 
                 echo "-> Existing project files moved to backup folder: ${BACKUP_FOLDER}"
-                echo "-> User settings (*.json), cache, and static assets (beer-keg.png, old backups) retained in main directory."
+                echo "-> User settings (*.json), cache, and static assets (beer-keg.png, arrow.png, old backups) retained in main directory."
 
                 # Reinstall the application (installs fresh copies over the now-empty APP_INSTALL_PATH)
                 initial_install_and_cleanup
@@ -245,7 +330,7 @@ management_menu() {
             *)
                 echo "Invalid selection. Please type E, U, or D."
                 ;;
-        
+            
         esac
     done
 }
