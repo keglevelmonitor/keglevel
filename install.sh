@@ -7,8 +7,7 @@
 REPO_URL="https://github.com/keglevelmonitor/keglevel.git" 
 PROGRAM_FOLDER="KegLevel_Monitor"
 SHORTCUT_FILE="KegLevel.desktop"
-# NOTE: EXECUTABLE_NAME is used for initial permission setting and validation.
-EXECUTABLE_NAME="KegLevel_Monitor_202510121125"
+# NOTE: EXECUTABLE_NAME has been removed. The script now dynamically finds the newest executable.
 TEMP_DIR=$(mktemp -d)
 
 # New list of support files to copy alongside the executable
@@ -51,6 +50,20 @@ initial_install_and_cleanup() {
     echo "2. Cloning code from ${REPO_URL} into temporary directory..."
     git clone --depth 1 "${REPO_URL}" "${TEMP_DIR}" || { echo "ERROR: Git clone failed. Check REPO_URL."; rm -rf "$TEMP_DIR"; exit 1; }
     
+    # --- DYNAMIC EXECUTABLE DISCOVERY ---
+    # Finds the single file in the cloned repo matching the KegLevel_Monitor_* pattern.
+    # This ensures the script always uses the newest, correct executable name.
+    EXECUTABLE_NAME_FOUND=$(find "${TEMP_DIR}/${PROGRAM_FOLDER}" -maxdepth 1 -type f -name "KegLevel_Monitor_*" -print -quit)
+    
+    if [ -z "$EXECUTABLE_NAME_FOUND" ]; then
+        echo "ERROR: No executable file matching 'KegLevel_Monitor_*' found in the repository. Aborting."
+        rm -rf "$TEMP_DIR"
+        return 1
+    fi
+    # Extracts only the filename
+    EXECUTABLE_BASE_NAME=$(basename "$EXECUTABLE_NAME_FOUND")
+    echo "    Dynamically found executable: $EXECUTABLE_BASE_NAME"
+    
     # 3. INSTALL PROGRAM FOLDER AND SET PERMISSIONS
     echo "3. Installing application files to Desktop..."
     
@@ -58,14 +71,9 @@ initial_install_and_cleanup() {
     mkdir -p "$APP_INSTALL_PATH" 
     
     # 3a. Copy the Executable
-    EXECUTABLE_SOURCE="${TEMP_DIR}/${PROGRAM_FOLDER}/${EXECUTABLE_NAME}"
-    EXECUTABLE_DESTINATION="${APP_INSTALL_PATH}/${EXECUTABLE_NAME}"
+    EXECUTABLE_SOURCE="$EXECUTABLE_NAME_FOUND"
+    EXECUTABLE_DESTINATION="${APP_INSTALL_PATH}/${EXECUTABLE_BASE_NAME}"
 
-    if [ ! -f "$EXECUTABLE_SOURCE" ]; then
-        echo "ERROR: Executable '${EXECUTABLE_NAME}' not found in repo. Aborting."
-        rm -rf "$TEMP_DIR"
-        return 1
-    fi
     cp "$EXECUTABLE_SOURCE" "$EXECUTABLE_DESTINATION"
     
     # 3b. Copy the four new support files and any existing config/library files (e.g., JSON)
@@ -83,7 +91,7 @@ initial_install_and_cleanup() {
     chown -R ${TARGET_USER}:${TARGET_USER} "$APP_INSTALL_PATH"
 
     # Ensure the executable inside the folder is executable
-    echo "    Setting executable permissions on $EXECUTABLE_NAME..."
+    echo "    Setting executable permissions on $EXECUTABLE_BASE_NAME..."
     chmod +x "$EXECUTABLE_DESTINATION"
 
     # 4. INSTALL DESKTOP SHORTCUT
@@ -151,11 +159,12 @@ management_menu() {
                 echo "Starting Update Process..."
                 echo "-> Creating backup folder: ${BACKUP_FOLDER}"
                 
-                # Move all existing contents into the backup folder
+                # FIX 1: Create backup folder *before* listing contents to avoid self-reference error
                 mkdir -p "$BACKUP_FOLDER"
                 
-                # Move EVERYTHING out of the project folder into the backup
-                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -exec mv -t "$BACKUP_FOLDER" {} +
+                # Move EVERYTHING out of the project folder into the backup, *EXCLUDING* the backup folder itself
+                # This uses a temporary list to filter out the backup directory, which prevents the 'mv' error.
+                find "$APP_INSTALL_PATH" -maxdepth 1 -mindepth 1 -not -path "$BACKUP_FOLDER" -exec mv -t "$BACKUP_FOLDER" {} +
                 
                 echo "-> Existing files moved to backup folder: ${BACKUP_FOLDER}"
 
@@ -202,6 +211,7 @@ management_menu() {
             *)
                 echo "Invalid selection. Please type E, U, or D."
                 ;;
+        
         esac
     done
 }
