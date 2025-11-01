@@ -1,14 +1,15 @@
-_z='BJCP 2021 Library'
-_y='description'
-_x='unassigned'
-_w='full'
-_v='source_library'
-_u='starting_volume_liters'
-_t='ibu'
-_s='lite'
-_r='metric'
-_q='licensing_api_url'
-_p='Daily'
+_A0='BJCP 2021 Library'
+_z='description'
+_y='unassigned'
+_x='full'
+_w='source_library'
+_v='starting_volume_liters'
+_u='ibu'
+_t='lite'
+_s='metric'
+_r='licensing_api_url'
+_q='Daily'
+_p='smtp_server'
 _o='trial_lock_signature'
 _n='None'
 _m='maximum_full_volume_liters'
@@ -38,8 +39,8 @@ _P='flow_calibration_notes'
 _O='sensor_keg_assignments'
 _N='sensor_beverage_assignments'
 _M='kegs'
-_L='smtp_port'
-_K='flow_calibration_to_be_poured'
+_L='flow_calibration_to_be_poured'
+_K='smtp_port'
 _J=None
 _I='imperial_pour_oz'
 _H='metric_pour_ml'
@@ -61,7 +62,7 @@ KEG_LIBRARY_FILE='keg_library.json'
 TRIAL_RECORD_FILE='trial_record.dat'
 UNASSIGNED_KEG_ID='unassigned_keg_id'
 try:from sensor_logic import FLOW_SENSOR_PINS,DEFAULT_K_FACTOR
-except ImportError:FLOW_SENSOR_PINS=[17,18,19,20,21,22,23,24,25,26];DEFAULT_K_FACTOR=588e1
+except ImportError:FLOW_SENSOR_PINS=[5,6,12,13,16,25,26,7,20,21];DEFAULT_K_FACTOR=51e2
 class SettingsManager:
 	def _get_default_sensor_labels(A):return[f"Tap {A+1}"for A in range(A.num_sensors)]
 	def _get_default_keg_definitions(C):
@@ -70,10 +71,10 @@ class SettingsManager:
 		return B
 	def _get_default_sensor_keg_assignments(A):return[UNASSIGNED_KEG_ID]*A.num_sensors
 	def _get_default_beverage_assignments(A):B=A._get_default_beverage_library().get(_E,[]);C=B[0][_C]if B else _J;return[C]*A.num_sensors
-	def _get_default_push_notification_settings(A):return{_S:_n,_V:_p,'server_email':'','server_password':'','email_recipient':'','smtp_server':'',_L:'','sms_number':'','sms_carrier_gateway':''}
+	def _get_default_push_notification_settings(A):return{_S:_n,_V:_q,'server_email':'','server_password':'','email_recipient':'',_p:'',_K:'','sms_number':'','sms_carrier_gateway':''}
 	def _get_default_conditional_notification_settings(A):return{_S:_n,_h:4.,_R:[_G]*A.num_sensors,_i:35.,_j:45.,_T:[],_D:{'push':0,'volume':0,'temperature':0}}
-	def _get_default_system_settings(A):return{_W:_r,_U:5,_b:_x,_Q:_s,_c:'',_X:_G,_Y:_G,_F:[DEFAULT_K_FACTOR]*A.num_sensors,_H:355,_I:12,_P:'',_K:1e3,_q:'https://us-central1-keglevel-licensing-api.cloudfunctions.net/handle_licensing'}
-	def _get_default_beverage_library(A):return{_E:[{_C:str(uuid.uuid4()),_k:'House Pale Ale','bjcp':'18(b)','abv':'5.0',_t:35,_y:'A refreshing, hop-forward American Pale Ale with a balanced malt background and a clean, dry finish. Our go-to beer.'}]}
+	def _get_default_system_settings(A):return{_W:_s,_U:5,_b:_y,_Q:_t,_c:'',_X:_G,_Y:_G,_F:[DEFAULT_K_FACTOR]*A.num_sensors,_H:355,_I:12,_P:'',_L:5e2,_r:'https://us-central1-keglevel-licensing-api.cloudfunctions.net/handle_licensing'}
+	def _get_default_beverage_library(A):return{_E:[{_C:str(uuid.uuid4()),_k:'House Pale Ale','bjcp':'18(b)','abv':'5.0',_u:35,_z:'A refreshing, hop-forward American Pale Ale with a balanced malt background and a clean, dry finish. Our go-to beer.'}]}
 	def _calculate_volume_from_weight(B,total_weight_kg,empty_weight_kg,density=1.):A=total_weight_kg-empty_weight_kg;return max(.0,A/density)
 	def _calculate_weight_from_volume(B,volume_liters,empty_weight_kg,density=1.):A=volume_liters*density;return empty_weight_kg+A
 	def __init__(A,num_sensors_expected):
@@ -90,7 +91,7 @@ class SettingsManager:
 					I=B.get(_M,[]);F=[];E=C._get_default_keg_definitions()[0]
 					for A in I:
 						if G in A:A[_f]=A.pop(G)
-						if _u in A:A[_g]=A.pop(_u)
+						if _v in A:A[_g]=A.pop(_v)
 						if _m not in A:A[_m]=E[_m]
 						A.setdefault(_f,E[_f]);A.setdefault(_l,E[_l]);A.setdefault(_g,E[_g]);A.setdefault(_a,E[_a]);F.append(A)
 					B[_M]=F;J={A[_C]:A for A in F if _C in A};return B,J
@@ -127,7 +128,7 @@ class SettingsManager:
 	def save_all_keg_dispensed_volumes(A):A._save_keg_library(A.keg_library)
 	def get_keg_by_id(B,keg_id):
 		A=keg_id
-		if A==UNASSIGNED_KEG_ID:return{_C:UNASSIGNED_KEG_ID,'title':'Offline',_u:.0,_a:.0}
+		if A==UNASSIGNED_KEG_ID:return{_C:UNASSIGNED_KEG_ID,'title':'Offline',_v:.0,_a:.0}
 		return B.keg_map.get(A)
 	def _load_beverage_library(A):
 		if os.path.exists(A.beverages_file_path):
@@ -146,7 +147,7 @@ class SettingsManager:
 	def get_beverage_library(A):return A.beverage_library
 	def save_beverage_library(A,new_library_list):A.beverage_library[_E]=new_library_list;A._save_beverage_library(A.beverage_library)
 	def get_available_addon_libraries(D):
-		G='_library.json';E=D.get_base_dir();C=[];F={os.path.basename(D.bjcp_2021_file_path):_z}
+		G='_library.json';E=D.get_base_dir();C=[];F={os.path.basename(D.bjcp_2021_file_path):_A0}
 		try:
 			for A in os.listdir(E):
 				K=os.path.join(E,A);H=A.endswith(G);I=A==os.path.basename(BEVERAGES_FILE)
@@ -158,7 +159,7 @@ class SettingsManager:
 		except Exception as J:print(f"SettingsManager Error scanning for add-on libraries: {J}");return['Error Scanning']
 	def get_addon_filename_from_display_name(A,display_name):
 		B=display_name
-		if B==_z:return A.bjcp_2021_file_path
+		if B==_A0:return A.bjcp_2021_file_path
 		else:C=B.lower().replace(' ','_');return os.path.join(A.get_base_dir(),f"{C}_library.json")
 	def load_addon_library(D,addon_name):
 		A=addon_name;B=D.get_addon_filename_from_display_name(A)
@@ -167,7 +168,7 @@ class SettingsManager:
 				with open(B,'r',encoding='utf-8')as E:
 					C=json.load(E)
 					if not isinstance(C.get(_E),list):print(f"Addon Library: Contents of {A} corrupted. Aborting import.");return
-					for F in C.get(_E,[]):F[_v]=A
+					for F in C.get(_E,[]):F[_w]=A
 					return C.get(_E,[])
 			except Exception as G:print(f"Addon Library: Error loading or decoding JSON for {A}: {G}.");return
 		else:print(f"Addon Library: {A} file not found at {B}.");return
@@ -180,18 +181,18 @@ class SettingsManager:
 	def delete_beverages_from_addon(C,addon_name):
 		B=addon_name;N=C.get_beverage_library().get(_E,[]);D=[];H=[];O=C.load_addon_library(B)
 		if O is _J:return _G,f"Could not load original {B} file for integrity check.",0,0
-		S={A[_C]:A for A in O if _C in A};E=len([A for A in N if A.get(_v)==B])
+		S={A[_C]:A for A in O if _C in A};E=len([A for A in N if A.get(_w)==B])
 		for F in N:
-			P=F.get(_v)==B
+			P=F.get(_w)==B
 			if P:
 				I=_G;Q=S.get(F.get(_C))
 				if Q:
-					T=[_k,'bjcp','abv',_t,_y]
+					T=[_k,'bjcp','abv',_u,_z]
 					for J in T:
 						A=F.get(J);K=Q.get(J)
 						if A=='':A=_J
 						if K=='':K=_J
-						if J==_t:A=int(A)if isinstance(A,str)and str(A).isdigit()else A
+						if J==_u:A=int(A)if isinstance(A,str)and str(A).isdigit()else A
 						if A!=K:I=_Z;break
 				else:I=_Z
 			if P and not I:H.append(F.get(_C))
@@ -211,7 +212,7 @@ class SettingsManager:
 			except Exception as B:print(f"SettingsManager Error: Could not delete local trial file: {B}")
 		if _o in A.settings:del A.settings[_o];A._save_all_settings();print('SettingsManager: Obsolete local trial lock signature deleted.')
 	def _load_settings(B,force_defaults=_G):
-		W='notification_settings';V='user_temp_input_c';U='velocity_mode';T='keg_definitions';S='trial_record';K=force_defaults;A={};X=B._get_default_sensor_labels();Y=B._get_default_sensor_keg_assignments();P=B._get_default_beverage_assignments();C=B._get_default_system_settings();J=B._get_default_push_notification_settings();F=B._get_default_conditional_notification_settings()
+		W='notification_settings';V='user_temp_input_c';U='velocity_mode';T='keg_definitions';S='trial_record';K=force_defaults;A={};X=B._get_default_sensor_labels();Y=B._get_default_sensor_keg_assignments();P=B._get_default_beverage_assignments();C=B._get_default_system_settings();H=B._get_default_push_notification_settings();F=B._get_default_conditional_notification_settings()
 		if not K and os.path.exists(B.settings_file_path):
 			try:
 				with open(B.settings_file_path,'r')as Z:A=json.load(Z)
@@ -221,44 +222,44 @@ class SettingsManager:
 			if K:print('Forcing reset to default settings.')
 			else:print(f"{B.settings_file_path} not found. Creating with defaults.")
 			A={}
-		H=not os.path.exists(B.settings_file_path)or not A
+		I=not os.path.exists(B.settings_file_path)or not A
 		if S in A:del A[S]
 		if _o in A:del A[_o]
 		if _d not in A or not isinstance(A.get(_d,[]),list)or len(A.get(_d,[]))!=B.num_sensors:A[_d]=X
 		if _N not in A or not isinstance(A.get(_N,[]),list)or len(A.get(_N,[]))!=B.num_sensors:
 			A[_N]=P
-			if not H:print('Settings: sensor_beverage_assignments initialized/adjusted.')
+			if not I:print('Settings: sensor_beverage_assignments initialized/adjusted.')
 		else:
-			D=A[_N];b=[A[_C]for A in B.beverage_library.get(_E,[])if _C in A]
-			for L in range(len(D)):
-				if D[L]not in b:D[L]=P[L]
-			A[_N]=D
+			E=A[_N];b=[A[_C]for A in B.beverage_library.get(_E,[])if _C in A]
+			for L in range(len(E)):
+				if E[L]not in b:E[L]=P[L]
+			A[_N]=E
 		if T in A:del A[T]
 		c=UNASSIGNED_KEG_ID
 		if _O not in A or not isinstance(A.get(_O,[]),list)or len(A.get(_O,[]))!=B.num_sensors:
 			A[_O]=Y
-			if not H:print('Settings: sensor_keg_assignments initialized/adjusted.')
+			if not I:print('Settings: sensor_keg_assignments initialized/adjusted.')
 		else:
-			D=A[_O];d=B.keg_map.keys()
-			for M in range(len(D)):
-				if D[M]!=UNASSIGNED_KEG_ID and D[M]not in d:D[M]=c
-			A[_O]=D
+			E=A[_O];d=B.keg_map.keys()
+			for M in range(len(E)):
+				if E[M]!=UNASSIGNED_KEG_ID and E[M]not in d:E[M]=c
+			A[_O]=E
 		if _A not in A or not isinstance(A.get(_A),dict):
 			A[_A]=C
-			if not H:print('Settings: system_settings initialized/adjusted.')
+			if not I:print('Settings: system_settings initialized/adjusted.')
 		else:
 			G=C.copy();G.update(A[_A])
 			if U in G:del G[U]
 			if V in G:del G[V]
 			A[_A]=G
-			if A[_A].get(_W)not in['imperial',_r]:A[_A][_W]=C[_W]
-			I=A[_A].get(_U,B.num_sensors)
-			try:I=int(I)
-			except ValueError:I=B.num_sensors
-			if not 1<=I<=B.num_sensors:A[_A][_U]=C[_U]
-			else:A[_A][_U]=I
+			if A[_A].get(_W)not in['imperial',_s]:A[_A][_W]=C[_W]
+			J=A[_A].get(_U,B.num_sensors)
+			try:J=int(J)
+			except ValueError:J=B.num_sensors
+			if not 1<=J<=B.num_sensors:A[_A][_U]=C[_U]
+			else:A[_A][_U]=J
 			if _b not in A[_A]:A[_A][_b]=C[_b]
-			if _Q not in A[_A]or A[_A][_Q]not in[_w,_s]:A[_A][_Q]=C[_Q]
+			if _Q not in A[_A]or A[_A][_Q]not in[_x,_t]:A[_A][_Q]=C[_Q]
 			if _F not in A[_A]or not isinstance(A.get(_F,[]),list)or len(A[_A].get(_F,[]))!=B.num_sensors:A[_A][_F]=C[_F]
 			else:
 				try:A[_A][_F]=[float(A)for A in A[_A][_F]]
@@ -272,21 +273,25 @@ class SettingsManager:
 				try:A[_A][_I]=int(A[_A][_I])
 				except(ValueError,TypeError):A[_A][_I]=C[_I]
 			if _P not in A[_A]or not isinstance(A[_A][_P],str):A[_A][_P]=C[_P]
-			if _K not in A[_A]:A[_A][_K]=C[_K]
+			if _L not in A[_A]:A[_A][_L]=C[_L]
 			else:
-				try:A[_A][_K]=float(A[_A][_K])
-				except(ValueError,TypeError):A[_A][_K]=C[_K]
+				try:A[_A][_L]=float(A[_A][_L])
+				except(ValueError,TypeError):A[_A][_L]=C[_L]
 		N={}
 		if W in A:print("Settings: Migrating old 'notification_settings' to 'push_notification_settings'.");N=A.pop(W)
 		elif _e in A:N=A.pop(_e)
-		E=J.copy();E.update(N);A[_e]=E
-		if E.get(_S)not in[_n,'Email','Text','Both']:E[_S]=J[_S]
-		if E.get(_V)not in['Hourly',_p,'Weekly','Monthly']:E[_V]=J[_V]
-		try:Q=E.get(_L,J[_L]);E[_L]=int(Q)if str(Q).strip().isdigit()else''
-		except ValueError:E[_L]=''
+		D=H.copy();D.update(N);A[_e]=D
+		if D.get(_S)not in[_n,'Email','Text','Both']:D[_S]=H[_S]
+		if D.get(_V)not in['Hourly',_q,'Weekly','Monthly']:D[_V]=H[_V]
+		e=D.get(_K,H[_K]);D.setdefault(_p,H[_p])
+		try:
+			Q=str(e).strip()
+			if Q.isdigit():D[_K]=int(Q)
+			else:D[_K]=''
+		except Exception:D[_K]=''
 		if _B not in A or not isinstance(A.get(_B),dict):
 			A[_B]=F
-			if not H:print('Settings: conditional_notification_settings initialized/adjusted.')
+			if not I:print('Settings: conditional_notification_settings initialized/adjusted.')
 		O=F.copy()
 		if _B in A:O.update(A[_B])
 		A[_B]=O
@@ -296,20 +301,20 @@ class SettingsManager:
 		else:R=F[_D].copy();R.update(O.get(_D,{}));A[_B][_D]=R
 		try:A[_B][_h]=float(A[_B][_h]);A[_B][_i]=float(A[_B][_i]);A[_B][_j]=float(A[_B][_j])
 		except(ValueError,TypeError):print('Settings: Conditional notification thresholds corrupted. Resetting to defaults.');A[_B][_h]=F[_h];A[_B][_i]=F[_i];A[_B][_j]=F[_j]
-		if K or H:B._save_all_settings(current_settings=A)
+		if K or I:B._save_all_settings(current_settings=A)
 		return A
 	def reset_all_settings_to_defaults(A):print('SettingsManager: Resetting all settings to their default values.');A.beverage_library=A._get_default_beverage_library();A._save_beverage_library(A.beverage_library);A.keg_library={_M:A._get_default_keg_definitions()};A.keg_map={A[_C]:A for A in A.keg_library[_M]};A._save_keg_library(A.keg_library);A.delete_obsolete_local_trial_files();A.settings={_d:A._get_default_sensor_labels(),_O:A._get_default_sensor_keg_assignments(),_N:A._get_default_beverage_assignments(),_A:A._get_default_system_settings(),_e:A._get_default_push_notification_settings(),_B:A._get_default_conditional_notification_settings()};A._save_all_settings();print('SettingsManager: All settings have been reset to defaults and saved.')
-	def get_ui_mode(A):return A.settings.get(_A,{}).get(_Q,_w)
+	def get_ui_mode(A):return A.settings.get(_A,{}).get(_Q,_x)
 	def save_ui_mode(A,mode_string):
 		B=mode_string
-		if B in[_w,_s]:A.settings.setdefault(_A,A._get_default_system_settings())[_Q]=B;A._save_all_settings();print(f"SettingsManager: UI Mode saved to {B}.")
+		if B in[_x,_t]:A.settings.setdefault(_A,A._get_default_system_settings())[_Q]=B;A._save_all_settings();print(f"SettingsManager: UI Mode saved to {B}.")
 	def get_autostart_enabled(A):return A.settings.get(_A,{}).get(_X,A._get_default_system_settings()[_X])
 	def save_autostart_enabled(A,is_enabled):B=is_enabled;A.settings.setdefault(_A,A._get_default_system_settings())[_X]=bool(B);A._save_all_settings();print(f"SettingsManager: Autostart setting saved as {B}.")
 	def get_launch_workflow_on_start(A):return A.settings.get(_A,{}).get(_Y,A._get_default_system_settings()[_Y])
 	def save_launch_workflow_on_start(A,is_enabled):B=is_enabled;A.settings.setdefault(_A,A._get_default_system_settings())[_Y]=bool(B);A._save_all_settings();print(f"SettingsManager: Launch workflow on start setting saved as {B}.")
 	def get_license_key(A):return A.settings.get(_A,{}).get(_c,'')
 	def save_license_key(A,key_string):A.settings.setdefault(_A,A._get_default_system_settings())[_c]=key_string;A._save_all_settings();print(f"SettingsManager: License key saved.")
-	def get_licensing_api_url(A):return A.settings.get(_A,{}).get(_q,A._get_default_system_settings()[_q])
+	def get_licensing_api_url(A):return A.settings.get(_A,{}).get(_r,A._get_default_system_settings()[_r])
 	def get_flow_calibration_factors(A):
 		B=A._get_default_system_settings().get(_F);C=A.settings.get(_A,{}).get(_F,B)
 		if len(C)!=A.num_sensors:return B
@@ -318,11 +323,11 @@ class SettingsManager:
 	def save_flow_calibration_factors(A,factors_list):
 		B=factors_list
 		if len(B)==A.num_sensors:A.settings.setdefault(_A,A._get_default_system_settings())[_F]=B;A._save_all_settings();print(f"SettingsManager: Flow calibration factors saved.")
-	def get_flow_calibration_settings(B):A=B._get_default_system_settings();C=B.settings.get(_A,A);return{'notes':C.get(_P,A[_P]),'to_be_poured':C.get(_K,A[_K])}
+	def get_flow_calibration_settings(B):A=B._get_default_system_settings();C=B.settings.get(_A,A);return{'notes':C.get(_P,A[_P]),'to_be_poured':C.get(_L,A[_L])}
 	def save_flow_calibration_settings(A,to_be_poured_value=_J,notes=_J):
 		C=notes;B=to_be_poured_value;D=A.settings.setdefault(_A,A._get_default_system_settings())
 		if B is not _J:
-			try:D[_K]=float(B)
+			try:D[_L]=float(B)
 			except(ValueError,TypeError):print('SettingsManager Error: Invalid flow_calibration_to_be_poured format for saving.');return
 		if C is not _J:D[_P]=str(C)
 		A._save_all_settings();print('SettingsManager: Flow calibration notes/to_be_poured saved.')
@@ -392,7 +397,7 @@ class SettingsManager:
 	def get_display_units(A):return A.settings.get(_A,{}).get(_W,A._get_default_system_settings()[_W])
 	def save_display_units(A,unit_system):
 		B=unit_system
-		if B in['imperial',_r]:A.settings.setdefault(_A,A._get_default_system_settings())[_W]=B
+		if B in['imperial',_s]:A.settings.setdefault(_A,A._get_default_system_settings())[_W]=B
 		A._save_all_settings()
 	def get_displayed_taps(B):
 		D=B.settings.get(_A,{});C=B._get_default_system_settings()[_U];A=D.get(_U,C)
@@ -403,24 +408,29 @@ class SettingsManager:
 		B=number_of_taps
 		if isinstance(B,int)and 1<=B<=A.num_sensors:A.settings.setdefault(_A,A._get_default_system_settings())[_U]=B;A._save_all_settings()
 	def get_push_notification_settings(C):
-		A=C.settings.get(_e,{}).copy();D=C._get_default_push_notification_settings()
-		for(E,F)in D.items():
-			if E not in A:A[E]=F
-		B=A.get(_L)
-		if isinstance(B,str)and B.strip().isdigit():A[_L]=int(B)
-		elif not isinstance(B,int)and B!='':A[_L]=D[_L]
+		A=C.settings.get(_e,{}).copy();E=C._get_default_push_notification_settings()
+		for(D,F)in E.items():
+			if D not in A:A[D]=F
+		B=A.get(_K)
+		if isinstance(B,str):
+			if B.strip().isdigit():A[_K]=int(B)
+			else:A[_K]=''
 		return A
 	def save_push_notification_settings(C,new_notif_settings):
 		A=new_notif_settings;B=C._get_default_push_notification_settings()
 		for D in B.keys():
 			if D not in A:A[D]=B[D]
 		if A.get(_S)not in[_n,'Email','Text','Both']:A[_S]=B[_S]
-		if A.get(_V)not in['Hourly',_p,'Weekly','Monthly']:A[_V]=B[_V]
-		try:E=str(A.get(_L,B[_L])).strip();A[_L]=int(E)if E else''
-		except ValueError:A[_L]=''
+		if A.get(_V)not in['Hourly',_q,'Weekly','Monthly']:A[_V]=B[_V]
+		F=A.get(_K,B[_K])
+		try:
+			E=str(F).strip()
+			if E.isdigit():A[_K]=int(E)
+			else:A[_K]=''
+		except Exception:A[_K]=''
 		C.settings[_e]=A;C._save_all_settings();print('Push Notification settings saved.')
 	def set_ds18b20_ambient_sensor(A,ambient_id):B=ambient_id;C=A.settings.get(_A,A._get_default_system_settings());C[_b]=B;A.settings[_A]=C;A._save_all_settings();print(f"SettingsManager: DS18B20 ambient sensor assignment saved: Ambient ID={B}")
-	def get_ds18b20_ambient_sensor(A):B=A.settings.get(_A,A._get_default_system_settings());return{'ambient':B.get(_b,_x)}
+	def get_ds18b20_ambient_sensor(A):B=A.settings.get(_A,A._get_default_system_settings());return{'ambient':B.get(_b,_y)}
 	def get_system_settings(C):
 		B=C._get_default_system_settings();A=C.settings.get(_A,B).copy()
 		if _Q not in A:A[_Q]=B[_Q]
@@ -431,7 +441,7 @@ class SettingsManager:
 		if _H not in A:A[_H]=B[_H]
 		if _I not in A:A[_I]=B[_I]
 		if _P not in A:A[_P]=B[_P]
-		if _K not in A:A[_K]=B[_K]
+		if _L not in A:A[_L]=B[_L]
 		return A
 	def _save_all_settings(A,current_settings=_J):
 		B=current_settings;C=B if B is not _J else A.settings

@@ -59,6 +59,12 @@ class SensorLogic:
 		A._cal_current_session_liters+=D
 		if A._is_calibrating and A._cal_target_tap==tap_index and A.ui_callbacks.get(_F):A.ui_callbacks.get(_F)(C,A._cal_current_session_liters)
 		return C,D
+	def deduct_volume_from_keg(A,tap_index,dispensed_liters):
+		'\n        Manually deducts a volume (in Liters) from the keg assigned to the tap.\n        Used after a calibration pour when the user confirms deduction.\n        ';D=dispensed_liters;B=tap_index
+		if not 0<=B<A.num_sensors:return _B
+		C=A.keg_ids_assigned[B]
+		if not C:return _B
+		A.keg_dispensed_liters[B]+=D;E=A.keg_dispensed_liters[B];A.settings_manager.update_keg_dispensed_volume(C,E);A.settings_manager.save_all_keg_dispensed_volumes();F=A.settings_manager.get_keg_by_id(C);G=F.get(_G,_A)if F else _A;H=G-E;A.last_known_remaining_liters[B]=max(_A,H);print(f"SensorLogic: Manually deducted {D:.2f}L from Tap {B+1} (Keg ID: {C}).");return _C
 	def _load_initial_volumes(A):
 		'Loads the dispensed volume and total starting volume from the Keg Library.';F=A.settings_manager.get_sensor_keg_assignments()
 		for B in range(A.num_sensors):
@@ -106,27 +112,24 @@ class SensorLogic:
 		while A._running:
 			if A.is_paused:time.sleep(.5);continue
 			if A._is_calibrating and A._cal_target_tap!=-1:A.active_sensor_index=A._cal_target_tap;A.tap_is_active[A._cal_target_tap]=_C
-			E=time.time();J=A.settings_manager.get_displayed_taps();K=A.settings_manager.get_flow_calibration_factors();G=-1
+			E=time.time();I=A.settings_manager.get_displayed_taps();J=A.settings_manager.get_flow_calibration_factors();G=-1
 			if not A._is_calibrating and A.active_sensor_index==-1:
-				for B in range(J):
+				for B in range(I):
 					D=E-last_check_time[B];C=global_pulse_counts[B]-A.last_pulse_count[B]
 					if C>=FLOW_PULSES_FOR_ACTIVITY and D>0:G=B;break
 			elif not A._is_calibrating and A.active_sensor_index!=-1:G=A.active_sensor_index
 			if A._is_calibrating:A.active_sensor_index=A._cal_target_tap
 			else:A.active_sensor_index=G
-			for B in range(J):
-				D=E-last_check_time[B];C=global_pulse_counts[B]-A.last_pulse_count[B];H=B==A.active_sensor_index;I=A._is_calibrating and A._cal_target_tap==B
-				if H and D>0 and C>0:
-					F=K[B]
-					if I:A._calculate_calibration_metrics(B,C,D,F);A.tap_is_active[B]=_C
+			for B in range(I):
+				D=E-last_check_time[B];C=global_pulse_counts[B]-A.last_pulse_count[B];K=B==A.active_sensor_index;H=A._is_calibrating and A._cal_target_tap==B
+				if K and D>0 and C>0:
+					F=J[B]
+					if H:A._calculate_calibration_metrics(B,C,D,F);A.tap_is_active[B]=_C
 					else:A._process_flow_data(B,C,D,F);A.tap_is_active[B]=_C
-				elif A.tap_is_active[B]and not H:A.tap_is_active[B]=_B;A._update_ui_data(B,_A,A.last_known_remaining_liters[B],_E)
-				elif A.tap_is_active[B]and H and C<=FLOW_PULSES_FOR_STOPPED:
-					F=K[B]
-					if I:A._calculate_calibration_metrics(B,C,D,F)
-					else:A._process_flow_data(B,C,D,F)
-					A.tap_is_active[B]=_B;A.active_sensor_index=-1;A._update_ui_data(B,_A,A.last_known_remaining_liters[B],_E);print(f"SensorLogic: Tap {B+1} stopped. Lock released.")
-					if not I:A.settings_manager.save_all_keg_dispensed_volumes()
+				elif A.tap_is_active[B]and not H:
+					if C<=FLOW_PULSES_FOR_STOPPED:F=J[B];A._process_flow_data(B,C,D,F);A.tap_is_active[B]=_B;A.active_sensor_index=-1;A._update_ui_data(B,_A,A.last_known_remaining_liters[B],_E);print(f"SensorLogic: Tap {B+1} stopped. Lock released.");A.settings_manager.save_all_keg_dispensed_volumes()
+					elif not K:A.tap_is_active[B]=_B;A.active_sensor_index=-1;A._update_ui_data(B,_A,A.last_known_remaining_liters[B],_E)
+				elif H:0
 				elif not A.tap_is_active[B]:A._update_ui_data(B,_A,A.last_known_remaining_liters[B],_E);A._check_conditional_notification(B)
 				A.last_pulse_count[B]=global_pulse_counts[B];last_check_time[B]=E
 			A.notification_service.check_and_send_temp_notification();time.sleep(READING_INTERVAL_SECONDS)
