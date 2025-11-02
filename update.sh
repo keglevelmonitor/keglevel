@@ -10,7 +10,7 @@ SHORTCUT_FILE="KegLevel.desktop"
 TEMP_DIR=$(mktemp -d)
 
 # Files that are code components/support scripts
-SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py temperature_logic.py"
+SUPPORT_FILES="sensor_logic.py settings_manager.py temperature_logic.py"
 
 # Files that should be present in the repository and MUST be copied
 CORE_ASSETS="bjcp_2015_library.json bjcp_2021_library.json beer-keg.png arrow.png" # <--- EDITED: Added arrow.png

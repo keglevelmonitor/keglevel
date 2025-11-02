@@ -11,7 +11,7 @@ SHORTCUT_FILES="KegLevel.desktop KegLevelUpdater.desktop" # <--- EDITED: Added n
 TEMP_DIR=$(mktemp -d)
 
 # Files that are code components/support scripts
-SUPPORT_FILES="notification_service.py sensor_logic.py settings_manager.py temperature_logic.py"
+SUPPORT_FILES="sensor_logic.py settings_manager.py temperature_logic.py"
 
 # Files that should be present in the repository and MUST be copied
 # Includes library files and static assets needed for installation.
